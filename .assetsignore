@@ -1,0 +1,26 @@
+# Files in this list are NOT uploaded to Cloudflare / NOT served by the Worker.
+
+# Hidden folders (Wrangler doesn't always exclude these on its own)
+.git/
+.wrangler/
+.claude/
+.vscode/
+.idea/
+
+# Config and tooling
+wrangler.toml
+.gitignore
+.assetsignore
+package.json
+package-lock.json
+node_modules/
+
+# Local dev/test utilities (not meant to be public)
+find_dupes.js
+test_games.js
+test_results.json
+noahstutoring_games.js
+
+# Oversized file (33 MiB, exceeds Cloudflare's 25 MiB per-file limit).
+# To restore: extract its embedded base64 assets into separate files.
+games/164.html

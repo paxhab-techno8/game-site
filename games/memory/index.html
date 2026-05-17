@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Memory Match</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    background: #000;
+    color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 16px;
+  }
+  .hud {
+    display: flex;
+    gap: 28px;
+    font-size: 0.95rem;
+    color: #bbb;
+  }
+  .hud strong { color: #fff; font-variant-numeric: tabular-nums; }
+  .board {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    width: min(440px, 90vw, 90vh);
+    aspect-ratio: 1;
+  }
+  .card {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    cursor: pointer;
+    perspective: 600px;
+    position: relative;
+    transition: transform 0.1s;
+  }
+  .card:hover:not(.flipped):not(.matched) { background: #222; }
+  .card-inner {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    transition: transform 0.35s;
+  }
+  .card.flipped .card-inner,
+  .card.matched .card-inner { transform: rotateY(180deg); }
+  .card-face {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    border-radius: 8px;
+    font-size: 2rem;
+  }
+  .card-front {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    color: #555;
+    font-weight: 700;
+  }
+  .card-back {
+    background: #fff;
+    color: #000;
+    transform: rotateY(180deg);
+    border: 1px solid #fff;
+  }
+  .card.matched .card-back {
+    background: #888;
+    color: #000;
+    border-color: #888;
+  }
+  .footer {
+    font-size: 0.8rem;
+    color: #888;
+    text-align: center;
+  }
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.88);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 14px;
+    color: #fff;
+  }
+  .overlay.active { display: flex; }
+  .overlay h2 { font-size: 1.8rem; }
+  .overlay .stats { color: #bbb; font-size: 1rem; }
+  .overlay button {
+    background: #fff;
+    color: #000;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  .overlay button:hover { background: #ccc; }
+</style>
+</head>
+<body>
+  <div class="hud">
+    <div>Moves: <strong id="moves">0</strong></div>
+    <div>Matches: <strong id="matches">0</strong> / 8</div>
+    <div>Time: <strong id="timer">0:00</strong></div>
+  </div>
+  <div class="board" id="board"></div>
+  <div class="footer">Flip two cards. Match all 8 pairs to win.</div>
+  <div class="overlay" id="overlay">
+    <h2>You Win!</h2>
+    <div class="stats" id="finalStats"></div>
+    <button id="restartBtn">Play Again</button>
+  </div>
+
+<script>
+  const board = document.getElementById("board");
+  const movesEl = document.getElementById("moves");
+  const matchesEl = document.getElementById("matches");
+  const timerEl = document.getElementById("timer");
+  const overlay = document.getElementById("overlay");
+  const finalStats = document.getElementById("finalStats");
+  const restartBtn = document.getElementById("restartBtn");
+
+  // 8 symbols × 2 = 16 cards
+  const SYMBOLS = ["★", "■", "●", "▲", "♦", "✦", "◆", "✪"];
+  let cards, first, second, lock, moves, matches, startTime, timerInterval;
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function fmtTime(ms) {
+    const s = Math.floor(ms / 1000);
+    const m = Math.floor(s / 60);
+    return `${m}:${String(s % 60).padStart(2, "0")}`;
+  }
+
+  function reset() {
+    board.innerHTML = "";
+    cards = shuffle([...SYMBOLS, ...SYMBOLS]);
+    first = null; second = null; lock = false;
+    moves = 0; matches = 0;
+    movesEl.textContent = "0";
+    matchesEl.textContent = "0";
+    timerEl.textContent = "0:00";
+    overlay.classList.remove("active");
+    if (timerInterval) clearInterval(timerInterval);
+    startTime = null;
+
+    cards.forEach((sym, i) => {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.dataset.symbol = sym;
+      card.innerHTML = `
+        <div class="card-inner">
+          <div class="card-face card-front">?</div>
+          <div class="card-face card-back">${sym}</div>
+        </div>
+      `;
+      card.addEventListener("click", () => flip(card));
+      board.appendChild(card);
+    });
+  }
+
+  function flip(card) {
+    if (lock) return;
+    if (card.classList.contains("flipped") || card.classList.contains("matched")) return;
+    if (!startTime) {
+      startTime = Date.now();
+      timerInterval = setInterval(() => {
+        timerEl.textContent = fmtTime(Date.now() - startTime);
+      }, 250);
+    }
+    card.classList.add("flipped");
+    if (!first) {
+      first = card;
+      return;
+    }
+    second = card;
+    lock = true;
+    moves++;
+    movesEl.textContent = moves;
+    if (first.dataset.symbol === second.dataset.symbol) {
+      setTimeout(() => {
+        first.classList.add("matched");
+        second.classList.add("matched");
+        first.classList.remove("flipped");
+        second.classList.remove("flipped");
+        matches++;
+        matchesEl.textContent = matches;
+        first = second = null;
+        lock = false;
+        if (matches === 8) winGame();
+      }, 350);
+    } else {
+      setTimeout(() => {
+        first.classList.remove("flipped");
+        second.classList.remove("flipped");
+        first = second = null;
+        lock = false;
+      }, 800);
+    }
+  }
+
+  function winGame() {
+    clearInterval(timerInterval);
+    const elapsed = Date.now() - startTime;
+    finalStats.textContent = `Solved in ${moves} moves and ${fmtTime(elapsed)}.`;
+    overlay.classList.add("active");
+  }
+
+  restartBtn.addEventListener("click", reset);
+  reset();
+</script>
+</body>
+</html>

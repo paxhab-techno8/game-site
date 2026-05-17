@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Pong</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    background: #000;
+    color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 16px;
+  }
+  .hud {
+    font-size: 1.1rem;
+    color: #bbb;
+    display: flex;
+    gap: 28px;
+  }
+  .hud strong { color: #fff; font-variant-numeric: tabular-nums; }
+  canvas {
+    background: #0a0a0a;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    max-width: 90vw;
+    width: 720px;
+    height: 440px;
+  }
+  .footer {
+    font-size: 0.8rem;
+    color: #888;
+    text-align: center;
+    max-width: 720px;
+  }
+  .footer kbd {
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 0.85em;
+    font-family: ui-monospace, monospace;
+    color: #ddd;
+  }
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 14px;
+    color: #fff;
+  }
+  .overlay.active { display: flex; }
+  .overlay h2 { font-size: 1.8rem; }
+  .overlay button {
+    background: #fff;
+    color: #000;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  .overlay button:hover { background: #ccc; }
+</style>
+</head>
+<body>
+  <div class="hud">
+    <div>You: <strong id="scoreL">0</strong></div>
+    <div>CPU: <strong id="scoreR">0</strong></div>
+  </div>
+  <canvas id="game" width="720" height="440"></canvas>
+  <div class="footer">
+    <kbd>↑</kbd> <kbd>↓</kbd> or <kbd>W</kbd> <kbd>S</kbd> to move your paddle &nbsp;·&nbsp; Mouse also works &nbsp;·&nbsp; First to 7 wins
+  </div>
+  <div class="overlay" id="overlay">
+    <h2 id="overlayTitle">You Win!</h2>
+    <button id="restartBtn">Play Again</button>
+  </div>
+
+<script>
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  const scoreLEl = document.getElementById("scoreL");
+  const scoreREl = document.getElementById("scoreR");
+  const overlay = document.getElementById("overlay");
+  const overlayTitle = document.getElementById("overlayTitle");
+  const restartBtn = document.getElementById("restartBtn");
+
+  const W = canvas.width, H = canvas.height;
+  const PADDLE_W = 10, PADDLE_H = 80, BALL_R = 7;
+  const PADDLE_SPEED = 7;
+  const WIN_SCORE = 7;
+
+  let leftY, rightY, ball, scoreL, scoreR, running, keysDown, mouseY, useMouse;
+
+  function reset(full) {
+    if (full) {
+      scoreL = 0; scoreR = 0;
+      scoreLEl.textContent = "0";
+      scoreREl.textContent = "0";
+      overlay.classList.remove("active");
+    }
+    leftY = (H - PADDLE_H) / 2;
+    rightY = (H - PADDLE_H) / 2;
+    ball = {
+      x: W / 2,
+      y: H / 2,
+      vx: (Math.random() < 0.5 ? -1 : 1) * 4.5,
+      vy: (Math.random() - 0.5) * 5,
+    };
+    running = true;
+    keysDown = {};
+    if (full) requestAnimationFrame(loop);
+  }
+
+  function loop() {
+    if (!running) return;
+    update();
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  function update() {
+    // Left paddle (player)
+    if (useMouse && mouseY != null) {
+      leftY = Math.max(0, Math.min(H - PADDLE_H, mouseY - PADDLE_H / 2));
+    } else {
+      if (keysDown["arrowup"] || keysDown["w"]) leftY -= PADDLE_SPEED;
+      if (keysDown["arrowdown"] || keysDown["s"]) leftY += PADDLE_SPEED;
+      leftY = Math.max(0, Math.min(H - PADDLE_H, leftY));
+    }
+
+    // Right paddle (CPU) — tracks ball with cap
+    const aiSpeed = 5;
+    const target = ball.y - PADDLE_H / 2;
+    const diff = target - rightY;
+    rightY += Math.max(-aiSpeed, Math.min(aiSpeed, diff));
+    rightY = Math.max(0, Math.min(H - PADDLE_H, rightY));
+
+    // Ball
+    ball.x += ball.vx;
+    ball.y += ball.vy;
+    if (ball.y - BALL_R < 0) { ball.y = BALL_R; ball.vy *= -1; }
+    if (ball.y + BALL_R > H) { ball.y = H - BALL_R; ball.vy *= -1; }
+
+    // Paddle collisions
+    if (ball.x - BALL_R < PADDLE_W && ball.y > leftY && ball.y < leftY + PADDLE_H && ball.vx < 0) {
+      ball.x = PADDLE_W + BALL_R;
+      const rel = (ball.y - (leftY + PADDLE_H / 2)) / (PADDLE_H / 2);
+      ball.vx = Math.abs(ball.vx) * 1.05;
+      ball.vy = rel * 5.5;
+    }
+    if (ball.x + BALL_R > W - PADDLE_W && ball.y > rightY && ball.y < rightY + PADDLE_H && ball.vx > 0) {
+      ball.x = W - PADDLE_W - BALL_R;
+      const rel = (ball.y - (rightY + PADDLE_H / 2)) / (PADDLE_H / 2);
+      ball.vx = -Math.abs(ball.vx) * 1.05;
+      ball.vy = rel * 5.5;
+    }
+
+    // Score
+    if (ball.x < -BALL_R) {
+      scoreR++; scoreREl.textContent = scoreR;
+      if (scoreR >= WIN_SCORE) endGame(false); else reset(false);
+    }
+    if (ball.x > W + BALL_R) {
+      scoreL++; scoreLEl.textContent = scoreL;
+      if (scoreL >= WIN_SCORE) endGame(true); else reset(false);
+    }
+  }
+
+  function endGame(playerWon) {
+    running = false;
+    overlayTitle.textContent = playerWon ? "You Win!" : "CPU Wins";
+    overlay.classList.add("active");
+  }
+
+  function draw() {
+    ctx.fillStyle = "#0a0a0a";
+    ctx.fillRect(0, 0, W, H);
+
+    // Center dashed line
+    ctx.fillStyle = "#333";
+    for (let y = 0; y < H; y += 18) ctx.fillRect(W / 2 - 1, y, 2, 10);
+
+    // Paddles
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, leftY, PADDLE_W, PADDLE_H);
+    ctx.fillRect(W - PADDLE_W, rightY, PADDLE_W, PADDLE_H);
+
+    // Ball
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, BALL_R, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  document.addEventListener("keydown", e => {
+    keysDown[e.key.toLowerCase()] = true;
+    useMouse = false;
+    if (["arrowup", "arrowdown", "w", "s"].includes(e.key.toLowerCase())) e.preventDefault();
+  });
+  document.addEventListener("keyup", e => { keysDown[e.key.toLowerCase()] = false; });
+
+  canvas.addEventListener("mousemove", e => {
+    useMouse = true;
+    const rect = canvas.getBoundingClientRect();
+    mouseY = (e.clientY - rect.top) * (H / rect.height);
+  });
+
+  restartBtn.addEventListener("click", () => reset(true));
+
+  reset(true);
+</script>
+</body>
+</html>

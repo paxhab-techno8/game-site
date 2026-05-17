@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Trains Are Cool</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9A%82%3C/text%3E%3C/svg%3E" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #000000;
+    color: #e6e6e6;
+    min-height: 100vh;
+  }
+  #particleCanvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: -1;
+    display: block;
+  }
+  header {
+    background: #111111;
+    padding: 18px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #2a2a2a;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .logo {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: #e6e6e6; }
+  .controls { display: flex; gap: 10px; align-items: center; }
+  .search {
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    color: #e6e6e6;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    width: 240px;
+    outline: none;
+  }
+  .search:focus { border-color: #ffffff; }
+  .btn {
+    background: #3a3a3a;
+    color: #e6e6e6;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.15s;
+  }
+  .btn:hover { background: #4a4a4a; }
+  .btn-primary { background: #ffffff; color: #000000; font-weight: 600; }
+  .btn-primary:hover { background: #cccccc; }
+
+  main { padding: 28px 32px 48px; max-width: 1500px; margin: 0 auto; }
+  h1 {
+    font-size: 1.8rem;
+    margin-bottom: 6px;
+  }
+  .subtitle { color: #888888; margin-bottom: 22px; font-size: 0.95rem; }
+  .count {
+    color: #888888;
+    font-size: 0.85rem;
+    margin-bottom: 18px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 16px;
+  }
+  .section-header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 0 6px;
+    border-bottom: 1px solid #2a2a2a;
+    margin-top: 6px;
+  }
+  .section-header:first-child { margin-top: 0; padding-top: 4px; }
+  .section-header h2 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #bbbbbb;
+    letter-spacing: -0.2px;
+  }
+  .section-count {
+    font-size: 0.8rem;
+    color: #888888;
+  }
+  .card {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+    position: relative;
+  }
+  .card:hover {
+    transform: translateY(-3px);
+    border-color: #ffffff;
+    box-shadow: 0 8px 20px rgba(255, 255, 255, 0.15);
+  }
+  .card-thumb {
+    width: 100%;
+    aspect-ratio: 16/10;
+    background: linear-gradient(135deg, #3a3a3a, #1a1a1a);
+    background-size: cover;
+    background-position: center;
+    position: relative;
+  }
+  .card-thumb.no-image::after {
+    content: "🎮";
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.4rem;
+    opacity: 0.5;
+  }
+  .popular-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #ffffff;
+    color: #000000;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    letter-spacing: 0.3px;
+  }
+  .external-badge {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(15, 17, 23, 0.85);
+    color: #7c9eff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 6px;
+    border: 1px solid rgba(124, 158, 255, 0.4);
+    line-height: 1;
+  }
+  .card.card-external .download-btn { display: none; }
+  .download-btn {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.7);
+    color: #e6e6e6;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    font-size: 1rem;
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s, transform 0.1s;
+    backdrop-filter: blur(4px);
+  }
+  .card:hover .download-btn { opacity: 1; }
+  .download-btn:hover { background: #ffffff; color: #000000; }
+  .download-btn:active { transform: scale(0.92); }
+  .download-btn.indirect { border-color: rgba(255, 255, 255, 0.5); }
+  .download-btn.indirect:hover { background: #ffffff; }
+  .card-body { padding: 10px 12px 12px; }
+  .card-title {
+    font-weight: 600;
+    font-size: 0.92rem;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-desc {
+    font-size: 0.76rem;
+    color: #888888;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 2.05em;
+  }
+
+  body.game-active > header,
+  body.game-active > main { display: none; }
+
+  #gameView {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    flex-direction: column;
+    background: #000;
+  }
+  body.game-active #gameView { display: flex; }
+  #gameView .topbar {
+    background: #111111;
+    padding: 8px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #2a2a2a;
+    flex-shrink: 0;
+    gap: 12px;
+  }
+  #gameView .topbar .title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #gameView .topbar .actions { display: flex; gap: 8px; flex-shrink: 0; }
+  #gameView .frame-wrap {
+    flex: 1;
+    background: #000;
+    min-height: 0;
+  }
+  #gameView iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+  }
+
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.78);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 300;
+    padding: 20px;
+  }
+  .modal-backdrop.active { display: flex; }
+  .modal {
+    background: #111111;
+    border: 1px solid #3a3a3a;
+    border-radius: 14px;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .welcome {
+    max-width: 480px;
+    padding: 28px;
+  }
+  .welcome h2 { margin-bottom: 10px; }
+  .welcome p { color: #bbbbbb; margin-bottom: 14px; line-height: 1.5; font-size: 0.95rem; }
+  .welcome ul { color: #bbbbbb; margin: 0 0 18px 18px; line-height: 1.7; font-size: 0.92rem; }
+  .welcome kbd {
+    background: #3a3a3a;
+    border: 1px solid #4a4a4a;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 0.85em;
+    font-family: ui-monospace, monospace;
+  }
+
+  .empty {
+    text-align: center;
+    color: #888888;
+    padding: 60px 20px;
+    font-size: 0.95rem;
+  }
+
+  body.locked > *:not(#lockGate) { display: none !important; }
+  #lockGate {
+    position: fixed;
+    inset: 0;
+    background: #000000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+  body.locked > #lockGate { display: flex; }
+  .lock-card {
+    background: #111111;
+    border: 1px solid #3a3a3a;
+    border-radius: 14px;
+    padding: 32px 28px;
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
+  }
+  .lock-card h2 {
+    font-size: 1.5rem;
+    margin-bottom: 6px;
+  }
+  .lock-card p {
+    color: #888888;
+    font-size: 0.92rem;
+    margin-bottom: 20px;
+  }
+  .lock-input {
+    width: 100%;
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    color: #e6e6e6;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 1rem;
+    outline: none;
+    margin-bottom: 10px;
+  }
+  .lock-input:focus { border-color: #ffffff; }
+  .lock-submit {
+    width: 100%;
+    background: #ffffff;
+    color: #000000;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: background 0.15s;
+  }
+  .lock-submit:hover { background: #cccccc; }
+  .lock-error {
+    color: #dddddd;
+    font-size: 0.85rem;
+    min-height: 1.2em;
+    margin-top: 8px;
+  }
+
+  .site-footer {
+    margin-top: 48px;
+    padding: 24px 32px;
+    border-top: 1px solid #2a2a2a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    font-size: 0.9rem;
+    color: #888888;
+  }
+  .site-footer .login-status { color: #bbbbbb; }
+
+  .login-fields { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+  .login-field-label {
+    display: block;
+    font-size: 0.82rem;
+    color: #888888;
+    margin-bottom: 4px;
+  }
+
+  .comment-item {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
+  .comment-meta {
+    font-size: 0.78rem;
+    color: #888888;
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .comment-meta strong { color: #ffffff; }
+  .comment-text {
+    color: #e6e6e6;
+    font-size: 0.92rem;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  .comment-delete {
+    background: transparent;
+    border: none;
+    color: #888888;
+    cursor: pointer;
+    font-size: 0.8rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .comment-delete:hover { background: #3a3a3a; color: #dddddd; }
+  .comments-empty {
+    color: #888888;
+    font-size: 0.88rem;
+    text-align: center;
+    padding: 20px 12px;
+    font-style: italic;
+  }
+</style>
+</head>
+<body class="locked">
+
+<canvas id="particleCanvas" aria-hidden="true"></canvas>
+<script>
+  // Lightweight drifting-particle background. Respects prefers-reduced-motion.
+  (function () {
+    const canvas = document.getElementById("particleCanvas");
+    if (!canvas) return;
+    const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const ctx = canvas.getContext("2d");
+    let w = 0, h = 0, dpr = window.devicePixelRatio || 1;
+    let particles = [];
+    let raf = null;
+    let lastFrame = 0;
+    const FPS_CAP = 30; // ~30fps to be kind to CPU/battery
+
+    function resize() {
+      w = window.innerWidth;
+      h = window.innerHeight;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = w + "px";
+      canvas.style.height = h + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const target = Math.max(80, Math.min(220, Math.floor((w * h) / 9000)));
+      while (particles.length < target) {
+        particles.push({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          vx: (Math.random() - 0.5) * 0.25,
+          vy: (Math.random() - 0.5) * 0.25,
+          r: Math.random() * 1.4 + 0.4,
+          a: Math.random() * 0.5 + 0.2,
+        });
+      }
+      particles.length = target;
+    }
+    resize();
+    window.addEventListener("resize", resize);
+
+    function frame(ts) {
+      raf = requestAnimationFrame(frame);
+      if (ts - lastFrame < 1000 / FPS_CAP) return;
+      lastFrame = ts;
+      ctx.clearRect(0, 0, w, h);
+      for (const p of particles) {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < -2) p.x = w + 2;
+        else if (p.x > w + 2) p.x = -2;
+        if (p.y < -2) p.y = h + 2;
+        else if (p.y > h + 2) p.y = -2;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,255,255,${p.a})`;
+        ctx.fill();
+      }
+    }
+    function start() { if (!raf && !reduce) raf = requestAnimationFrame(frame); }
+    function stop() { if (raf) { cancelAnimationFrame(raf); raf = null; } }
+    if (reduce) {
+      // Render one static frame so the dots are still visible, then idle.
+      lastFrame = 0; frame(performance.now()); stop();
+    } else {
+      start();
+    }
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) stop(); else start();
+    });
+  })();
+</script>
+
+<script>
+
+  (function () {
+    const user = localStorage.getItem("logged-in-user");
+    if (!user) return;
+    if (user === "admin") {
+      document.body.classList.remove("locked");
+      return;
+    }
+    try {
+      const accounts = JSON.parse(localStorage.getItem("accounts") || "{}");
+      if (!accounts[user]) {
+        localStorage.removeItem("logged-in-user");
+        return;
+      }
+      accounts[user].loginsSinceVerify = (accounts[user].loginsSinceVerify || 0) + 1;
+      localStorage.setItem("accounts", JSON.stringify(accounts));
+      if (accounts[user].loginsSinceVerify >= 10) {
+        window.__verifyUser = user;
+      } else {
+        document.body.classList.remove("locked");
+      }
+    } catch (e) { /* fall through to site gate */ }
+  })();
+</script>
+
+<div id="lockGate">
+  <form class="lock-card" id="lockForm">
+    <h2>🚂 Trains Are Cool</h2>
+    <p>Enter the password to continue.</p>
+    <input type="password" class="lock-input" id="lockInput" autocomplete="current-password" autofocus />
+    <button type="submit" class="lock-submit">Enter</button>
+    <div class="lock-error" id="lockError"></div>
+  </form>
+</div>
+
+<header>
+  <div class="logo">Trains Are<span> Cool</span></div>
+  <div class="controls">
+    <input type="text" class="search" id="search" placeholder="Search games..." />
+    <button class="btn" id="cloakBtn" title="Open in about:blank">Cloak</button>
+    <button class="btn" id="creditsBtn">Credits</button>
+    <button class="btn" id="infoBtn">?</button>
+  </div>
+</header>
+
+<main>
+  <h1>Trains Are Cool</h1>
+  <p class="subtitle">Click a card to launch.</p>
+  <div class="count" id="count"></div>
+  <div class="grid" id="grid"></div>
+</main>
+
+<footer class="site-footer">
+  <button class="btn" id="loginBtn">Log In</button>
+  <button class="btn" id="signupBtn">Sign Up</button>
+  <span class="login-status" id="loginStatus"></span>
+</footer>
+
+<div id="gameView">
+  <div class="topbar">
+    <div class="title" id="gameTitle">Game</div>
+    <div class="actions">
+      <button class="btn" id="downloadBtn" title="Save this game to your computer">↓ Download</button>
+      <button class="btn" id="commentsBtn" title="Notes & bug reports for this game">💬 Comments</button>
+      <button class="btn" id="newTabBtn">Open in new tab</button>
+      <button class="btn" id="fullscreenBtn">Fullscreen</button>
+      <button class="btn btn-primary" id="closeGame">← Back to Hub</button>
+    </div>
+  </div>
+  <div class="frame-wrap">
+    <iframe id="gameFrame" allow="autoplay; fullscreen; gamepad" allowfullscreen></iframe>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="welcomeModal">
+  <div class="modal welcome">
+    <h2>Welcome to Trains Are Cool</h2>
+    <p>Hundreds of games hosted right here. A few tips:</p>
+    <ul>
+      <li><strong>Cloak</strong> button opens this site inside an <code>about:blank</code> tab so the title and icon look like a blank page.</li>
+      <li><strong>Panic key:</strong> press <kbd>\</kbd> (backslash) anytime to instantly redirect to Google.</li>
+      <li><strong>Esc</strong> returns to the hub from a game.</li>
+      <li><strong>Search</strong> filters by title or description (press <kbd>/</kbd> to focus).</li>
+      <li>If a game appears blank, use <strong>Open in new tab</strong>.</li>
+    </ul>
+    <p style="margin-top:14px; font-size:0.92rem;">Got an idea or want to suggest a game? Leave a comment on any game page.</p>
+    <button class="btn btn-primary" id="welcomeClose" style="margin-top:14px;">Got it</button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="creditsModal">
+  <div class="modal welcome">
+    <h2>Credits</h2>
+    <p><strong>Trains Are Cool</strong> — a browser games hub.</p>
+    <p><strong>Coded By:</strong> Claude, VS Code</p>
+    <p style="margin-top:14px;"><strong>Original Games:</strong></p>
+    <ul>
+      <li>Snake — original implementation</li>
+      <li>Pong — original implementation</li>
+      <li>Memory Match — original implementation</li>
+    </ul>
+    <p style="margin-top:14px;"><strong>Open Source Games:</strong></p>
+    <ul>
+      <li><strong>2048</strong> by <a href="https://github.com/gabrielecirulli/2048" target="_blank" rel="noopener" style="color:#ffffff">Gabriele Cirulli</a> — MIT License. See <code>games/2048/LICENSE.txt</code>.</li>
+      <li><strong>Hextris</strong> by the <a href="https://github.com/Hextris/hextris" target="_blank" rel="noopener" style="color:#ffffff">Hextris team</a> — GPL-3.0 License. See <code>games/hextris/LICENSE.md</code>. Modifications to this game (if any) must be released under GPL-3.0.</li>
+    </ul>
+    <p style="margin-top:14px;"><strong>Hub:</strong> built with vanilla HTML, CSS, and JavaScript. No frameworks.</p>
+    <p style="font-size:0.85rem;color:#888888;margin-top:6px;">Credit for any individual game belongs to its original creator. Open source games retain their original licenses; copies of those licenses are included with each game.</p>
+    <button class="btn btn-primary" id="creditsClose">Close</button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="loginModal">
+  <div class="modal welcome">
+    <h2>Log In</h2>
+    <p>Enter your username and password. <a href="#" id="goToSignup" style="color:#ffffff">Don't have an account? Sign up.</a></p>
+    <form id="loginForm" class="login-fields">
+      <div>
+        <label class="login-field-label" for="loginUsername">Username</label>
+        <input type="text" class="lock-input" id="loginUsername" autocomplete="username" />
+      </div>
+      <div>
+        <label class="login-field-label" for="loginPassword">Password</label>
+        <input type="password" class="lock-input" id="loginPassword" autocomplete="current-password" />
+      </div>
+      <div class="lock-error" id="loginError"></div>
+      <div style="display:flex; gap:8px;">
+        <button type="submit" class="btn btn-primary" style="flex:1;">Log In</button>
+        <button type="button" class="btn" id="loginCancel">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="signupModal">
+  <div class="modal welcome">
+    <h2>Create Account</h2>
+    <p>Make an account so you don't have to type the site password each visit. Every 10 page loads you'll be asked to re-enter the site password to keep going.</p>
+    <form id="signupForm" class="login-fields">
+      <div>
+        <label class="login-field-label" for="signupUsername">Username</label>
+        <input type="text" class="lock-input" id="signupUsername" autocomplete="username" />
+      </div>
+      <div>
+        <label class="login-field-label" for="signupPassword">Password</label>
+        <input type="password" class="lock-input" id="signupPassword" autocomplete="new-password" />
+      </div>
+      <div>
+        <label class="login-field-label" for="signupConfirm">Confirm Password</label>
+        <input type="password" class="lock-input" id="signupConfirm" autocomplete="new-password" />
+      </div>
+      <div class="lock-error" id="signupError"></div>
+      <div style="display:flex; gap:8px;">
+        <button type="submit" class="btn btn-primary" style="flex:1;">Sign Up</button>
+        <button type="button" class="btn" id="signupCancel">Cancel</button>
+      </div>
+    </form>
+    <p style="font-size:0.8rem; color:#888888; margin-top:14px;">Accounts are saved only in this browser. They don't sync across devices and aren't real security — anyone with DevTools can read every password stored here.</p>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="commentsModal">
+  <div class="modal welcome" style="max-width:560px;">
+    <h2>💬 Comments</h2>
+    <p id="commentsGameTitle" style="color:#bbbbbb; margin-bottom:8px;"></p>
+    <p style="font-size:0.8rem; color:#888888; margin-bottom:14px;">Notes &amp; bug reports for this game. <strong>Saved only in this browser</strong> — they don't sync to other devices.</p>
+    <div id="commentsList" style="max-height:280px; overflow-y:auto; margin-bottom:14px;"></div>
+    <form id="commentForm" style="display:flex; flex-direction:column; gap:8px;">
+      <textarea id="commentInput" class="lock-input" rows="3" placeholder="Write a note or bug report..." style="resize:vertical; font-family:inherit;"></textarea>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button type="submit" class="btn btn-primary" id="commentSubmit" style="flex:1;">Post Comment</button>
+        <button type="button" class="btn" id="commentsClose">Close</button>
+      </div>
+      <div class="lock-error" id="commentError"></div>
+    </form>
+  </div>
+</div>
+
+<script>
+  // Soft password gate — edit SITE_PASSWORD below to change.
+  // This is plaintext in the page source; treat it as a casual gate, not security.
+  const SITE_PASSWORD = "trainsarecool";
+
+  function readAccounts() {
+    try { return JSON.parse(localStorage.getItem("accounts") || "{}"); }
+    catch { return {}; }
+  }
+  function writeAccounts(a) { localStorage.setItem("accounts", JSON.stringify(a)); }
+
+  (function () {
+    const form = document.getElementById("lockForm");
+    const input = document.getElementById("lockInput");
+    const err = document.getElementById("lockError");
+    if (!form) return;
+
+    // Adjust gate UI if we're verifying after 10 page loads
+    if (window.__verifyUser) {
+      const title = form.querySelector("h2");
+      const desc = form.querySelector("p");
+      if (title) title.textContent = "🔒 Confirm Site Password";
+      if (desc) desc.innerHTML = `Logged in as <strong>${window.__verifyUser}</strong>. Re-enter the site password to continue.`;
+    }
+
+    form.addEventListener("submit", e => {
+      e.preventDefault();
+      const verifyUser = window.__verifyUser;
+      // Always check against the master site password — for both the initial
+      // gate and the every-10-loads verify prompt.
+      if (input.value === SITE_PASSWORD) {
+        if (verifyUser) {
+          const accounts = readAccounts();
+          if (accounts[verifyUser]) {
+            accounts[verifyUser].loginsSinceVerify = 0;
+            writeAccounts(accounts);
+          }
+          delete window.__verifyUser;
+        }
+        document.body.classList.remove("locked");
+        err.textContent = "";
+      } else {
+        err.textContent = "Incorrect password.";
+        input.select();
+      }
+    });
+  })();
+
+  const games = [
+    { title: "Snake", desc: "Classic snake. Eat the dots, grow longer, don't run into yourself. Arrow keys or WASD; space to pause.", url: "games/snake/", image: "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20100%2062.5'%3E%3Crect%20width%3D'100'%20height%3D'62.5'%20fill%3D'%230f0f0f'%2F%3E%3Cg%20fill%3D'%23fff'%3E%3Crect%20x%3D'20'%20y%3D'20'%20width%3D'8'%20height%3D'8'%2F%3E%3Crect%20x%3D'29'%20y%3D'20'%20width%3D'8'%20height%3D'8'%2F%3E%3Crect%20x%3D'38'%20y%3D'20'%20width%3D'8'%20height%3D'8'%2F%3E%3Crect%20x%3D'47'%20y%3D'20'%20width%3D'8'%20height%3D'8'%2F%3E%3Crect%20x%3D'56'%20y%3D'20'%20width%3D'8'%20height%3D'8'%2F%3E%3Crect%20x%3D'65'%20y%3D'20'%20width%3D'8'%20height%3D'8'%2F%3E%3C%2Fg%3E%3Crect%20x%3D'80'%20y%3D'40'%20width%3D'6'%20height%3D'6'%20fill%3D'%23fff'%2F%3E%3Ctext%20x%3D'50'%20y%3D'55'%20font-family%3D'Segoe%20UI%2CArial%2Csans-serif'%20font-size%3D'6'%20fill%3D'%23888'%20text-anchor%3D'middle'%20letter-spacing%3D'1.5'%3ESNAKE%3C%2Ftext%3E%3C%2Fsvg%3E", source: "local" },
+    { title: "Pong", desc: "First to 7 wins. Move with arrow keys, WASD, or your mouse. The CPU keeps up — but only just.", url: "games/pong/", image: "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20100%2062.5'%3E%3Crect%20width%3D'100'%20height%3D'62.5'%20fill%3D'%230f0f0f'%2F%3E%3Cline%20x1%3D'50'%20y1%3D'4'%20x2%3D'50'%20y2%3D'58'%20stroke%3D'%23333'%20stroke-width%3D'1'%20stroke-dasharray%3D'3%203'%2F%3E%3Crect%20x%3D'10'%20y%3D'20'%20width%3D'4'%20height%3D'22'%20fill%3D'%23fff'%2F%3E%3Crect%20x%3D'86'%20y%3D'14'%20width%3D'4'%20height%3D'22'%20fill%3D'%23fff'%2F%3E%3Ccircle%20cx%3D'50'%20cy%3D'31'%20r%3D'3'%20fill%3D'%23fff'%2F%3E%3Ctext%20x%3D'50'%20y%3D'55'%20font-family%3D'Segoe%20UI%2CArial%2Csans-serif'%20font-size%3D'6'%20fill%3D'%23888'%20text-anchor%3D'middle'%20letter-spacing%3D'1.5'%3EPONG%3C%2Ftext%3E%3C%2Fsvg%3E", source: "local" },
+    { title: "Memory Match", desc: "Flip cards two at a time and match all 8 pairs. Fewer moves and lower time = better score.", url: "games/memory/", image: "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20100%2062.5'%3E%3Crect%20width%3D'100'%20height%3D'62.5'%20fill%3D'%230f0f0f'%2F%3E%3Cg%3E%3Crect%20x%3D'18'%20y%3D'10'%20width%3D'18'%20height%3D'12'%20fill%3D'%23fff'%20rx%3D'2'%2F%3E%3Crect%20x%3D'41'%20y%3D'10'%20width%3D'18'%20height%3D'12'%20fill%3D'%23444'%20rx%3D'2'%2F%3E%3Crect%20x%3D'64'%20y%3D'10'%20width%3D'18'%20height%3D'12'%20fill%3D'%23fff'%20rx%3D'2'%2F%3E%3Crect%20x%3D'18'%20y%3D'26'%20width%3D'18'%20height%3D'12'%20fill%3D'%23444'%20rx%3D'2'%2F%3E%3Crect%20x%3D'41'%20y%3D'26'%20width%3D'18'%20height%3D'12'%20fill%3D'%23fff'%20rx%3D'2'%2F%3E%3Crect%20x%3D'64'%20y%3D'26'%20width%3D'18'%20height%3D'12'%20fill%3D'%23444'%20rx%3D'2'%2F%3E%3C%2Fg%3E%3Ctext%20x%3D'50'%20y%3D'52'%20font-family%3D'Segoe%20UI%2CArial%2Csans-serif'%20font-size%3D'6'%20fill%3D'%23888'%20text-anchor%3D'middle'%20letter-spacing%3D'1.2'%3EMEMORY%3C%2Ftext%3E%3C%2Fsvg%3E", source: "local" },
+    { title: "2048", desc: "Slide numbered tiles to combine matching pairs. Reach the 2048 tile to win. By Gabriele Cirulli (MIT).", url: "games/2048/", image: "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20100%2062.5'%3E%3Crect%20width%3D'100'%20height%3D'62.5'%20fill%3D'%230f0f0f'%2F%3E%3Crect%20x%3D'18'%20y%3D'8'%20width%3D'26'%20height%3D'20'%20fill%3D'%23fff'%20rx%3D'3'%2F%3E%3Ctext%20x%3D'31'%20y%3D'22'%20font-family%3D'Segoe%20UI%2CArial%2Csans-serif'%20font-size%3D'12'%20font-weight%3D'700'%20fill%3D'%23000'%20text-anchor%3D'middle'%3E2%3C%2Ftext%3E%3Crect%20x%3D'48'%20y%3D'8'%20width%3D'26'%20height%3D'20'%20fill%3D'%23888'%20rx%3D'3'%2F%3E%3Ctext%20x%3D'61'%20y%3D'22'%20font-family%3D'Segoe%20UI%2CArial%2Csans-serif'%20font-size%3D'12'%20font-weight%3D'700'%20fill%3D'%23000'%20text-anchor%3D'middle'%3E4%3C%2Ftext%3E%3Crect%20x%3D'33'%20y%3D'32'%20width%3D'34'%20height%3D'22'%20fill%3D'%23444'%20rx%3D'3'%2F%3E%3Ctext%20x%3D'50'%20y%3D'47'%20font-family%3D'Segoe%20UI%2CArial%2Csans-serif'%20font-size%3D'11'%20font-weight%3D'700'%20fill%3D'%23fff'%20text-anchor%3D'middle'%3E2048%3C%2Ftext%3E%3C%2Fsvg%3E", source: "opensource" },
+    { title: "Hextris", desc: "Tetris-meets-hexagons. Rotate the central hex to stack falling pieces of the same color. By the Hextris team (GPL-3.0).", url: "games/hextris/", image: "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20100%2062.5'%3E%3Crect%20width%3D'100'%20height%3D'62.5'%20fill%3D'%230f0f0f'%2F%3E%3Cpolygon%20points%3D'50%2C16%2065%2C25%2065%2C40%2050%2C49%2035%2C40%2035%2C25'%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-width%3D'1.6'%2F%3E%3Cpolygon%20points%3D'25%2C9%2033%2C14%2033%2C21%2025%2C26%2017%2C21%2017%2C14'%20fill%3D'%23fff'%2F%3E%3Cpolygon%20points%3D'75%2C9%2083%2C14%2083%2C21%2075%2C26%2067%2C21%2067%2C14'%20fill%3D'%23888'%2F%3E%3Cpolygon%20points%3D'25%2C37%2033%2C42%2033%2C49%2025%2C54%2017%2C49%2017%2C42'%20fill%3D'%23444'%2F%3E%3Cpolygon%20points%3D'75%2C37%2083%2C42%2083%2C49%2075%2C54%2067%2C49%2067%2C42'%20fill%3D'%23fff'%2F%3E%3C%2Fsvg%3E", source: "opensource" }
+  ];
+
+  const SOURCE_ORDER = ["local", "opensource"];
+  const SOURCE_LABELS = {
+    "local": "Original Games",
+    "opensource": "Open Source Games"
+  };
+  games.sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base", numeric: true }));
+
+  const grid = document.getElementById("grid");
+  const countEl = document.getElementById("count");
+  const search = document.getElementById("search");
+  const gameView = document.getElementById("gameView");
+  const gameFrame = document.getElementById("gameFrame");
+  const gameTitle = document.getElementById("gameTitle");
+  const closeGame = document.getElementById("closeGame");
+  const fullscreenBtn = document.getElementById("fullscreenBtn");
+  const newTabBtn = document.getElementById("newTabBtn");
+  const downloadBtn = document.getElementById("downloadBtn");
+  const welcomeModal = document.getElementById("welcomeModal");
+  const welcomeClose = document.getElementById("welcomeClose");
+  const infoBtn = document.getElementById("infoBtn");
+  const cloakBtn = document.getElementById("cloakBtn");
+  const creditsModal = document.getElementById("creditsModal");
+  const creditsBtn = document.getElementById("creditsBtn");
+  const creditsClose = document.getElementById("creditsClose");
+
+  let currentUrl = "";
+  let currentGame = null;
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+
+  function isLocalUrl(u) { return !!u && !/^https?:\/\//i.test(u); }
+  function sanitizeFilename(s) {
+    return s.replace(/[<>:"/\\|?*\x00-\x1f]+/g, "").trim().slice(0, 80) || "game";
+  }
+  function downloadGame(g) {
+    const url = g.url || "";
+    if (!url) return;
+    const filename = sanitizeFilename(g.title) + ".html";
+    if (isLocalUrl(url)) {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } else {
+      window.open(url, "_blank", "noopener");
+      setTimeout(() => {
+        if (typeof document.hasFocus === "function" && document.hasFocus()) {
+          alert("This game is hosted off-site. The new tab opened — use your browser's Save Page As (Ctrl+S) to save it to your computer.");
+        }
+      }, 350);
+    }
+  }
+
+  function cardEl(g) {
+    const card = document.createElement("div");
+    card.className = g.external ? "card card-external" : "card";
+    card.title = g.desc || g.title;
+    const imgUrl = g.image || "";
+    const thumbClass = imgUrl ? "card-thumb" : "card-thumb no-image";
+    const thumbStyle = imgUrl ? `style="background-image:url('${imgUrl}')"` : "";
+    const badges = [
+      g.popular ? '<div class="popular-badge">POPULAR</div>' : "",
+      g.external ? '<div class="external-badge" title="Opens in a new tab">↗</div>' : ""
+    ].join("");
+    const local = isLocalUrl(g.url);
+    const dlTitle = local
+      ? `Download ${g.title} (saves locally)`
+      : `Open in new tab so you can Save Page As (game is on ${g.source})`;
+    const dlClass = local ? "download-btn" : "download-btn indirect";
+    card.innerHTML = `
+      <div class="${thumbClass}" ${thumbStyle}>
+        ${badges}
+        <button type="button" class="${dlClass}" title="${escapeHtml(dlTitle)}" aria-label="Download">&#x2B07;</button>
+      </div>
+      <div class="card-body">
+        <div class="card-title">${escapeHtml(g.title)}</div>
+        <div class="card-desc">${escapeHtml(g.desc || "")}</div>
+      </div>
+    `;
+    card.addEventListener("click", () => openGame(g));
+    card.querySelector(".download-btn").addEventListener("click", e => {
+      e.stopPropagation();
+      downloadGame(g);
+    });
+    return card;
+  }
+
+  function render(filter = "") {
+    const q = filter.toLowerCase().trim();
+    const matches = g => !q || g.title.toLowerCase().includes(q) || (g.desc || "").toLowerCase().includes(q);
+
+    const bySource = {};
+    let totalShown = 0;
+    for (const src of SOURCE_ORDER) bySource[src] = [];
+    for (const g of games) {
+      if (!matches(g)) continue;
+      (bySource[g.source] = bySource[g.source] || []).push(g);
+      totalShown++;
+    }
+
+    countEl.textContent = q
+      ? `${totalShown} of ${games.length} games`
+      : `${games.length} games across ${SOURCE_ORDER.length} sources`;
+
+    grid.innerHTML = "";
+    if (totalShown === 0) {
+      grid.innerHTML = '<div class="empty" style="grid-column:1/-1">No games match your search.</div>';
+      return;
+    }
+
+    const frag = document.createDocumentFragment();
+    for (const src of SOURCE_ORDER) {
+      const list = bySource[src];
+      if (!list || list.length === 0) continue;
+      const header = document.createElement("div");
+      header.className = "section-header";
+      header.innerHTML = `
+        <h2>${escapeHtml(SOURCE_LABELS[src] || src)}</h2>
+        <span class="section-count">${list.length} game${list.length === 1 ? "" : "s"}</span>
+      `;
+      frag.appendChild(header);
+      for (const g of list) frag.appendChild(cardEl(g));
+    }
+    grid.appendChild(frag);
+  }
+
+  function openGame(g) {
+    if (g.external) {
+      window.open(g.url, "_blank", "noopener");
+      return;
+    }
+    currentUrl = g.url || "";
+    currentGame = g;
+    gameTitle.textContent = g.title;
+    gameFrame.src = currentUrl;
+    document.body.classList.add("game-active");
+    if (downloadBtn) {
+      downloadBtn.title = isLocalUrl(g.url)
+        ? `Download ${g.title} to your computer`
+        : `Game is on ${g.source} — opens new tab so you can Save Page As (Ctrl+S)`;
+    }
+    if (history.state?.game !== g.title) {
+      history.pushState({ game: g.title }, "", "#" + encodeURIComponent(g.title));
+    }
+    window.scrollTo(0, 0);
+  }
+
+  function closeGameView() {
+    if (!document.body.classList.contains("game-active")) return;
+    document.body.classList.remove("game-active");
+    gameFrame.src = "";
+    currentUrl = "";
+    currentGame = null;
+    if (location.hash) history.replaceState(null, "", location.pathname + location.search);
+  }
+
+  closeGame.addEventListener("click", () => {
+    if (history.state?.game) history.back();
+    else closeGameView();
+  });
+
+  window.addEventListener("popstate", () => {
+    if (!history.state?.game) closeGameView();
+  });
+
+  fullscreenBtn.addEventListener("click", () => {
+    const wrap = document.querySelector("#gameView .frame-wrap");
+    if (wrap?.requestFullscreen) wrap.requestFullscreen();
+    else if (gameFrame.requestFullscreen) gameFrame.requestFullscreen();
+  });
+
+  newTabBtn.addEventListener("click", () => {
+    if (!currentUrl) return;
+    // Resolve relative URLs (like "games/snake/") against this page so the
+    // iframe inside about:blank gets a fully-qualified src.
+    let absUrl;
+    try { absUrl = new URL(currentUrl, window.location.href).href; }
+    catch { absUrl = currentUrl; }
+    const win = window.open("about:blank", "_blank");
+    if (!win) {
+      alert("Popup blocked. Allow popups for this page.");
+      return;
+    }
+    win.document.write(`<!DOCTYPE html><html><head><title></title><link rel="icon" href="data:,"></head><body style="margin:0;background:#000"><iframe src="${absUrl}" allow="autoplay; fullscreen; gamepad" allowfullscreen style="border:0;width:100vw;height:100vh"></iframe></body></html>`);
+    win.document.close();
+  });
+
+  // Per-browser game comments (notes / bug reports). Stored in localStorage,
+  // keyed by game URL. Not synced anywhere — only visible in this browser.
+  const commentsBtn = document.getElementById("commentsBtn");
+  const commentsModal = document.getElementById("commentsModal");
+  const commentsList = document.getElementById("commentsList");
+  const commentsGameTitle = document.getElementById("commentsGameTitle");
+  const commentForm = document.getElementById("commentForm");
+  const commentInput = document.getElementById("commentInput");
+  const commentError = document.getElementById("commentError");
+  const commentsClose = document.getElementById("commentsClose");
+
+  function readAllComments() {
+    try { return JSON.parse(localStorage.getItem("game-comments") || "{}"); }
+    catch { return {}; }
+  }
+  function writeAllComments(o) { localStorage.setItem("game-comments", JSON.stringify(o)); }
+
+  function commentKeyForGame(g) {
+    return g?.url || g?.title || "";
+  }
+
+  function escapeHtmlComment(s) {
+    return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+
+  function formatDate(ts) {
+    const d = new Date(ts);
+    if (isNaN(d)) return "";
+    return d.toLocaleString();
+  }
+
+  function renderComments() {
+    if (!currentGame) return;
+    const all = readAllComments();
+    const list = all[commentKeyForGame(currentGame)] || [];
+    const currentUser = localStorage.getItem("logged-in-user");
+    commentsList.innerHTML = "";
+    if (list.length === 0) {
+      commentsList.innerHTML = '<div class="comments-empty">No comments yet. Be the first to leave a note or bug report.</div>';
+      return;
+    }
+    list.slice().reverse().forEach((c, reversedIdx) => {
+      const idx = list.length - 1 - reversedIdx;
+      const canDelete = currentUser && (currentUser === c.author || currentUser === "admin");
+      const item = document.createElement("div");
+      item.className = "comment-item";
+      item.innerHTML = `
+        <div class="comment-meta">
+          <span><strong>${escapeHtmlComment(c.author || "anonymous")}</strong> · ${escapeHtmlComment(formatDate(c.createdAt))}</span>
+          ${canDelete ? `<button type="button" class="comment-delete" data-idx="${idx}" title="Delete this comment">Delete</button>` : ""}
+        </div>
+        <div class="comment-text">${escapeHtmlComment(c.text)}</div>
+      `;
+      commentsList.appendChild(item);
+    });
+    commentsList.querySelectorAll(".comment-delete").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const idx = parseInt(btn.dataset.idx, 10);
+        const all = readAllComments();
+        const key = commentKeyForGame(currentGame);
+        if (!all[key]) return;
+        all[key].splice(idx, 1);
+        if (all[key].length === 0) delete all[key];
+        writeAllComments(all);
+        renderComments();
+      });
+    });
+  }
+
+  function openCommentsModal() {
+    if (!currentGame) return;
+    const currentUser = localStorage.getItem("logged-in-user");
+    commentsGameTitle.textContent = currentGame.title;
+    commentError.textContent = "";
+    commentInput.value = "";
+    if (!currentUser) {
+      commentInput.disabled = true;
+      commentInput.placeholder = "Log in to post a comment.";
+      document.getElementById("commentSubmit").disabled = true;
+    } else {
+      commentInput.disabled = false;
+      commentInput.placeholder = "Write a note or bug report...";
+      document.getElementById("commentSubmit").disabled = false;
+    }
+    renderComments();
+    commentsModal.classList.add("active");
+    setTimeout(() => { if (!commentInput.disabled) commentInput.focus(); }, 0);
+  }
+
+  commentsBtn.addEventListener("click", openCommentsModal);
+  commentsClose.addEventListener("click", () => commentsModal.classList.remove("active"));
+  commentsModal.addEventListener("click", e => { if (e.target === commentsModal) commentsModal.classList.remove("active"); });
+
+  commentForm.addEventListener("submit", e => {
+    e.preventDefault();
+    const text = commentInput.value.trim();
+    const currentUser = localStorage.getItem("logged-in-user");
+    if (!currentUser) { commentError.textContent = "Log in to post a comment."; return; }
+    if (!text) { commentError.textContent = "Comment can't be empty."; return; }
+    if (text.length > 1000) { commentError.textContent = "Comment too long (max 1000 characters)."; return; }
+    if (!currentGame) return;
+    const all = readAllComments();
+    const key = commentKeyForGame(currentGame);
+    if (!all[key]) all[key] = [];
+    all[key].push({ author: currentUser, text, createdAt: Date.now() });
+    writeAllComments(all);
+    commentInput.value = "";
+    commentError.textContent = "";
+    renderComments();
+  });
+
+  if (downloadBtn) {
+    downloadBtn.addEventListener("click", () => {
+      if (currentGame) downloadGame(currentGame);
+    });
+  }
+
+  if (!localStorage.getItem("seen-welcome-v2")) {
+    welcomeModal.classList.add("active");
+  }
+  welcomeClose.addEventListener("click", () => {
+    welcomeModal.classList.remove("active");
+    localStorage.setItem("seen-welcome-v2", "1");
+  });
+  infoBtn.addEventListener("click", () => welcomeModal.classList.add("active"));
+
+  creditsBtn.addEventListener("click", () => creditsModal.classList.add("active"));
+  creditsClose.addEventListener("click", () => creditsModal.classList.remove("active"));
+  creditsModal.addEventListener("click", e => { if (e.target === creditsModal) creditsModal.classList.remove("active"); });
+
+  // Auth: owner is hardcoded; everyone else uses accounts stored in localStorage.
+  // All credentials are plaintext in this file — soft gate, not real auth.
+  const ADMIN_USERNAME = "admin";
+  const loginBtn = document.getElementById("loginBtn");
+  const signupBtn = document.getElementById("signupBtn");
+  const loginStatus = document.getElementById("loginStatus");
+  const loginModal = document.getElementById("loginModal");
+  const loginForm = document.getElementById("loginForm");
+  const loginUsername = document.getElementById("loginUsername");
+  const loginPassword = document.getElementById("loginPassword");
+  const loginError = document.getElementById("loginError");
+  const loginCancel = document.getElementById("loginCancel");
+  const signupModal = document.getElementById("signupModal");
+  const signupForm = document.getElementById("signupForm");
+  const signupUsername = document.getElementById("signupUsername");
+  const signupPassword = document.getElementById("signupPassword");
+  const signupConfirm = document.getElementById("signupConfirm");
+  const signupError = document.getElementById("signupError");
+  const signupCancel = document.getElementById("signupCancel");
+
+  function refreshLoginStatus() {
+    const user = localStorage.getItem("logged-in-user");
+    if (user) {
+      loginBtn.textContent = "Log Out";
+      signupBtn.style.display = "none";
+      loginStatus.textContent = `Logged in as ${user}`;
+    } else {
+      loginBtn.textContent = "Log In";
+      signupBtn.style.display = "";
+      loginStatus.textContent = "";
+    }
+  }
+  refreshLoginStatus();
+
+  loginBtn.addEventListener("click", () => {
+    if (localStorage.getItem("logged-in-user")) {
+      localStorage.removeItem("logged-in-user");
+      refreshLoginStatus();
+    } else {
+      loginError.textContent = "";
+      loginUsername.value = "";
+      loginPassword.value = "";
+      loginModal.classList.add("active");
+      setTimeout(() => loginUsername.focus(), 0);
+    }
+  });
+  loginForm.addEventListener("submit", e => {
+    e.preventDefault();
+    const u = loginUsername.value.trim();
+    const p = loginPassword.value;
+    const accounts = readAccounts();
+    const key = u.toLowerCase();
+    if (accounts[key] && accounts[key].password === p) {
+      accounts[key].loginsSinceVerify = 0;
+      writeAccounts(accounts);
+      localStorage.setItem("logged-in-user", key);
+      loginModal.classList.remove("active");
+      refreshLoginStatus();
+      return;
+    }
+    // Diagnostic — only writes to console, never reveals passwords.
+    const known = Object.keys(accounts);
+    console.warn("[login] failed for username", JSON.stringify(u),
+      "→ lookup key", JSON.stringify(key),
+      "| accounts in storage:", known.length ? known : "(none — did you sign up?)",
+      "| account exists?", !!accounts[key],
+      "| password matches?", accounts[key] ? accounts[key].password === p : "n/a");
+    loginError.textContent = known.length
+      ? "Invalid username or password."
+      : "No accounts exist yet. Click Sign Up first.";
+    loginPassword.select();
+  });
+  const goToSignup = document.getElementById("goToSignup");
+  if (goToSignup) {
+    goToSignup.addEventListener("click", e => {
+      e.preventDefault();
+      loginModal.classList.remove("active");
+      signupBtn.click();
+    });
+  }
+  loginCancel.addEventListener("click", () => loginModal.classList.remove("active"));
+  loginModal.addEventListener("click", e => { if (e.target === loginModal) loginModal.classList.remove("active"); });
+
+  signupBtn.addEventListener("click", () => {
+    signupError.textContent = "";
+    signupUsername.value = "";
+    signupPassword.value = "";
+    signupConfirm.value = "";
+    signupModal.classList.add("active");
+    setTimeout(() => signupUsername.focus(), 0);
+  });
+  signupForm.addEventListener("submit", e => {
+    e.preventDefault();
+    const u = signupUsername.value.trim().toLowerCase();
+    const p = signupPassword.value;
+    const c = signupConfirm.value;
+    if (u.length < 3) { signupError.textContent = "Username must be at least 3 characters."; return; }
+    if (!/^[a-z0-9_]+$/i.test(u)) { signupError.textContent = "Username can only contain letters, numbers, and underscores."; return; }
+    if (u === ADMIN_USERNAME) { signupError.textContent = "That username is reserved."; return; }
+    if (p.length < 4) { signupError.textContent = "Password must be at least 4 characters."; return; }
+    if (p !== c) { signupError.textContent = "Passwords don't match."; return; }
+
+    const accounts = readAccounts();
+    if (accounts[u]) { signupError.textContent = "Username already taken."; return; }
+    accounts[u] = { password: p, loginsSinceVerify: 0, createdAt: Date.now() };
+    writeAccounts(accounts);
+    localStorage.setItem("logged-in-user", u);
+    console.info("[signup] account created", JSON.stringify(u), "| total accounts:", Object.keys(accounts).length);
+    signupModal.classList.remove("active");
+    refreshLoginStatus();
+  });
+  signupCancel.addEventListener("click", () => signupModal.classList.remove("active"));
+  signupModal.addEventListener("click", e => { if (e.target === signupModal) signupModal.classList.remove("active"); });
+
+  search.addEventListener("input", e => render(e.target.value));
+
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") {
+      if (commentsModal.classList.contains("active")) {
+        commentsModal.classList.remove("active");
+      } else if (signupModal.classList.contains("active")) {
+        signupModal.classList.remove("active");
+      } else if (loginModal.classList.contains("active")) {
+        loginModal.classList.remove("active");
+      } else if (creditsModal.classList.contains("active")) {
+        creditsModal.classList.remove("active");
+      } else if (welcomeModal.classList.contains("active")) {
+        welcomeModal.classList.remove("active");
+      } else if (document.body.classList.contains("game-active")) {
+        if (history.state?.game) history.back();
+        else closeGameView();
+      }
+    }
+    if (e.key === "\\") {
+      window.location.replace("https://www.google.com");
+    }
+    if (e.key === "/" && document.activeElement !== search && !document.body.classList.contains("game-active")) {
+      e.preventDefault();
+      search.focus();
+    }
+  });
+
+  cloakBtn.addEventListener("click", () => {
+    const win = window.open("about:blank");
+    if (!win) {
+      alert("Popup blocked. Allow popups for this page.");
+      return;
+    }
+    const url = window.location.href;
+    win.document.write(`<!DOCTYPE html><html><head><title></title><link rel="icon" href="data:,"></head><body style="margin:0"><iframe src="${url}" style="border:0;width:100vw;height:100vh"></iframe></body></html>`);
+    win.document.close();
+  });
+
+  render();
+
+  if (location.hash.length > 1) {
+    const want = decodeURIComponent(location.hash.slice(1));
+    const g = games.find(g => g.title === want);
+    if (g) openGame(g);
+  }
+</script>
+
+</body>
+</html>

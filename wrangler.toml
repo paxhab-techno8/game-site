@@ -1,0 +1,17 @@
+name = "game-site"
+compatibility_date = "2026-05-17"
+
+# Serve the static site directly from this directory.
+# The Worker doesn't need any JS — the [assets] binding handles everything.
+[assets]
+directory = "./"
+# When a path doesn't match a file, behavior options are:
+#   "none"                     - return 404 from the assets binding
+#   "404-page"                 - return ./404.html with a 404 status
+#   "single-page-application"  - return ./index.html with 200 (for SPAs)
+not_found_handling = "none"
+
+# To use a custom domain instead of the workers.dev URL, uncomment and edit:
+# routes = [
+#   { pattern = "games.yourdomain.com", custom_domain = true }
+# ]
